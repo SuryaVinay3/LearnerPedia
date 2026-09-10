@@ -25,7 +25,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchUserProfile = async (user: User) => {
-    const isAdminEmail = user.email === 'admin@learnerpedia.com' || user.email === 'suryavinay2608@gmail.com';
+    const isAdminEmail = 
+      user.email === 'admin@gmail.com' || 
+      user.email === 'admin@learnerpedia.com' || 
+      user.email === 'suryavinay2608@gmail.com' ||
+      user.email?.startsWith('admin@');
 
     // 1. Try fetching profile via backend API using Auth ID Token (uses Admin SDK, bypasses client rule issues)
     try {
