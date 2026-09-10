@@ -33,6 +33,11 @@ export async function apiRequest<T = any>(
     headers,
   });
 
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`API endpoint ${endpoint} returned non-JSON response (${response.status})`);
+  }
+
   const data = await response.json();
 
   if (!response.ok) {

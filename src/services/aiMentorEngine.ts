@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { MentorMode, MentorStudentContext } from '../types/mentor';
+import { MentorMode, MentorStudentContext, ProactiveAlert } from '../types/mentor';
 import { AI_KNOWLEDGE_BASE } from '../data/aiKnowledgeBase';
 
 // Lazy initialized Gemini AI Client
@@ -102,7 +102,7 @@ Return your response strictly in JSON format matching this schema:
 `;
 
 /**
- * Local fallback pedagogical engine when Gemini API key is not present
+ * Local fallback pedagogical engine when Gemini API key or backend is not present
  */
 export function generateLocalMentorResponse(
   message: string,
@@ -113,10 +113,21 @@ export function generateLocalMentorResponse(
   const norm = message.toLowerCase().trim();
   const studentName = context.studentName || 'Learner';
 
-  // Check for subnetting / VLSM
-  if (norm.includes('subnet') || norm.includes('cidr') || norm.includes('host') || norm.includes('mask') || norm.includes('/24') || norm.includes('/26')) {
+  // 1. Check for subnetting / VLSM / IP Addressing
+  if (
+    norm.includes('subnet') ||
+    norm.includes('cidr') ||
+    norm.includes('host') ||
+    norm.includes('mask') ||
+    norm.includes('/24') ||
+    norm.includes('/26') ||
+    norm.includes('/28') ||
+    norm.includes('vlsm') ||
+    norm.includes('broadcast') ||
+    norm.includes('network id')
+  ) {
     return {
-      reply: `Great question, **${studentName}**! Subnetting is all about partitioning a physical network into smaller logical segments to minimize broadcast noise and enforce security boundaries.\n\nLet's break it down using the **Magic Number method**:\n* **Formula**: $\\text{Step Size} = 256 - \\text{Interesting Octet}$\n* For example, in a **/26 subnet** (\`255.255.255.192\`), the Magic Number is $256 - 192 = 64$.\n* That means your subnets increment by 64: \`.0\`, \`.64\`, \`.128\`, and \`.192\`.\n\nHere is a quick question for you: How many usable host IP addresses exist in a **/27** subnet?`,
+      reply: `Great question, **${studentName}**! Subnetting partitions a physical network into smaller logical segments to minimize broadcast noise and enforce security boundaries.\n\nLet's break it down using the **Magic Number method**:\n* **Formula**: $\\text{Step Size} = 256 - \\text{Interesting Octet}$\n* For example, in a **/26 subnet** (\`255.255.255.192\`), the Magic Number is $256 - 192 = 64$.\n* That means your subnets increment by 64: \`.0\`, \`.64\`, \`.128\`, and \`.192\`.\n\n**Socratic Check**: If you have a **/27 subnet** (borrowing 3 bits), how many usable host addresses exist per subnet block?`,
       mentorState: 'explaining',
       emotionalTone: 'socratic',
       formulaCard: {
@@ -153,10 +164,40 @@ export function generateLocalMentorResponse(
     };
   }
 
-  // Check for OSI layers
-  if (norm.includes('osi') || norm.includes('layer') || norm.includes('transport') || norm.includes('packet')) {
+  // 2. Check for OSI layers / TCP/IP / DNS / ARP
+  if (
+    norm.includes('osi') ||
+    norm.includes('layer') ||
+    norm.includes('transport') ||
+    norm.includes('tcp') ||
+    norm.includes('udp') ||
+    norm.includes('dns') ||
+    norm.includes('arp') ||
+    norm.includes('packet') ||
+    norm.includes('handshake')
+  ) {
+    if (norm.includes('tcp') || norm.includes('handshake') || norm.includes('syn')) {
+      return {
+        reply: `Excellent concept to explore, **${studentName}**! TCP uses the **Three-Way Handshake** to establish a reliable, stateful connection before transmitting payload data:\n\n1. 📤 **Client $\\to$ Server**: \`SYN\` (Synchronize sequence number $X$)\n2. 📥 **Server $\\to$ Client**: \`SYN-ACK\` (Acknowledge $X+1$, Synchronize server sequence number $Y$)\n3. 📤 **Client $\\to$ Server**: \`ACK\` (Acknowledge $Y+1$)\n\nOnce complete, the full-duplex socket is established. Why do you think UDP bypasses this handshake entirely?`,
+        mentorState: 'explaining',
+        emotionalTone: 'socratic',
+        practiceCard: {
+          question: 'Which TCP flag combination is sent by the server in step 2 of the 3-Way Handshake?',
+          options: ['SYN-ACK', 'SYN only', 'ACK only', 'FIN-ACK'],
+          correctIndex: 0,
+          explanation: 'In step 2, the server replies with SYN-ACK to acknowledge the client SYN and present its own starting sequence number.',
+          topic: 'TCP Protocol Suite'
+        },
+        suggestedFollowUps: [
+          "What is the difference between TCP and UDP?",
+          "How does TCP flow control work with sliding windows?",
+          "Explain the TCP 4-way termination handshake"
+        ]
+      };
+    }
+
     return {
-      reply: `Let's visualize the **7-Layer OSI Model**, **${studentName}**!\n\nA helpful mnemonic to remember from Layer 7 down to Layer 1 is:\n> *"All People Seem To Need Data Processing"*\n\n1. **Layer 7 - Application**: HTTP, DNS, SSH, FTP\n2. **Layer 6 - Presentation**: TLS encryption, formatting, compression\n3. **Layer 5 - Session**: Manages persistent connections\n4. **Layer 4 - Transport**: TCP (reliable), UDP (fast), Port numbers\n5. **Layer 3 - Network**: IP Addressing, Routers, Packets\n6. **Layer 2 - Data Link**: MAC Addresses, Switches, Frames\n7. **Layer 1 - Physical**: Cables, Fiber optics, Binary bits\n\nWhich layer do you think handles packet routing between different subnets?`,
+      reply: `Let's visualize the **7-Layer OSI Model**, **${studentName}**!\n\nA helpful mnemonic from Layer 7 down to Layer 1 is:\n> *"All People Seem To Need Data Processing"*\n\n1. **Layer 7 - Application**: HTTP, DNS, SSH, FTP\n2. **Layer 6 - Presentation**: TLS encryption, formatting, JSON/JPEG\n3. **Layer 5 - Session**: RPC sessions, connection tokens\n4. **Layer 4 - Transport**: TCP (reliable, ordered), UDP (fast, datagrams), Ports\n5. **Layer 3 - Network**: IP Addressing, Routers, Packets, ICMP\n6. **Layer 2 - Data Link**: MAC Addresses, Switches, Frames, Ethernet\n7. **Layer 1 - Physical**: Cables, Fiber optics, Radio frequencies, Binary bits\n\nWhich layer handles packet routing between different subnets?`,
       mentorState: 'explaining',
       emotionalTone: 'supportive',
       practiceCard: {
@@ -181,8 +222,69 @@ export function generateLocalMentorResponse(
     };
   }
 
-  // Check for Circuit / Labs / Diagnostics
-  if (norm.includes('lab') || norm.includes('circuit') || norm.includes('voltage') || norm.includes('ping') || norm.includes('gateway') || norm.includes('broken')) {
+  // 3. Check for Data Structures & Algorithms
+  if (
+    norm.includes('tree') ||
+    norm.includes('binary') ||
+    norm.includes('bst') ||
+    norm.includes('graph') ||
+    norm.includes('stack') ||
+    norm.includes('queue') ||
+    norm.includes('array') ||
+    norm.includes('linked list') ||
+    norm.includes('hash') ||
+    norm.includes('sort') ||
+    norm.includes('algorithm') ||
+    norm.includes('complexity') ||
+    norm.includes('big o')
+  ) {
+    return {
+      reply: `Data Structures are the bedrock of efficient computation, **${studentName}**!\n\nWhen evaluating any algorithm, we analyze **Time Complexity** (how operations scale) and **Space Complexity** (memory footprint):\n\n* **Hash Tables**: $O(1)$ average search, insert, and delete via hashing functions.\n* **Binary Search Tree (Balanced)**: $O(\\log N)$ lookup, insertion, and traversal.\n* **Arrays**: $O(1)$ direct index access, but $O(N)$ insertion/deletion in the middle.\n* **Linked Lists**: $O(1)$ head/tail insertion, but $O(N)$ sequential access.\n\nWhat specific data structure or problem are you working through right now?`,
+      mentorState: 'explaining',
+      emotionalTone: 'socratic',
+      formulaCard: {
+        title: 'Binary Tree Max Nodes Formula',
+        formula: 'Max Nodes = 2^(h + 1) - 1',
+        variables: [
+          { symbol: 'h', meaning: 'Height of the binary tree (root at height 0)' },
+          { symbol: 'N', meaning: 'Total number of nodes in a perfect binary tree' }
+        ],
+        example: 'For a tree of height h = 3: Max Nodes = 2^4 - 1 = 15 nodes.',
+        tip: 'In a complete binary tree, the number of leaf nodes is at most 2^h.'
+      },
+      practiceCard: {
+        question: 'What is the worst-case time complexity of searching an element in an un-balanced Binary Search Tree (degenerate linked list)?',
+        options: ['O(N)', 'O(log N)', 'O(1)', 'O(N log N)'],
+        correctIndex: 0,
+        explanation: 'When a BST becomes completely skewed (degenerate like a linked list), search operations degrade to linear time O(N).',
+        topic: 'Tree Data Structures'
+      },
+      recommendedStep: {
+        title: 'Advanced Data Structures & Algorithms',
+        type: 'course',
+        link: '/learn-store',
+        reason: 'Master tree balancing, graph traversals, and dynamic programming patterns.',
+        xpReward: 150
+      },
+      suggestedFollowUps: [
+        "What is the difference between BFS and DFS?",
+        "How do self-balancing AVL trees work?",
+        "Explain Hash collisions and chaining"
+      ]
+    };
+  }
+
+  // 4. Check for Circuit / Labs / Diagnostics
+  if (
+    norm.includes('lab') ||
+    norm.includes('circuit') ||
+    norm.includes('voltage') ||
+    norm.includes('ping') ||
+    norm.includes('gateway') ||
+    norm.includes('broken') ||
+    norm.includes('fail') ||
+    norm.includes('dropped')
+  ) {
     return {
       reply: `I'm on it! Let's troubleshoot your lab setup step-by-step.\n\nWhen troubleshooting connectivity or circuit power, always follow a structured diagnostic workflow:\n1. **Verify Complete Circuit Loop**: Ensure wires connect in a continuous loop from Power(+) $\\to$ Switch $\\to$ Load $\\to$ Ground(-).\n2. **Check Gateway IP**: In networking simulations, ensure the PC's default gateway matches the router interface IP on the same subnet.\n3. **Test with Step-by-Step Isolation**: Isolate components one at a time to identify the failure point.\n\nTell me: What error message or symptom are you currently seeing in the lab?`,
       mentorState: 'encouraging',
@@ -201,8 +303,17 @@ export function generateLocalMentorResponse(
     };
   }
 
-  // Check for progress, streak, or analysis
-  if (norm.includes('streak') || norm.includes('progress') || norm.includes('score') || norm.includes('mistake') || norm.includes('weak') || norm.includes('points')) {
+  // 5. Check for progress, streak, or analysis
+  if (
+    norm.includes('streak') ||
+    norm.includes('progress') ||
+    norm.includes('score') ||
+    norm.includes('mistake') ||
+    norm.includes('weak') ||
+    norm.includes('points') ||
+    norm.includes('level') ||
+    norm.includes('rank')
+  ) {
     const streak = context.streak || 3;
     const xp = context.xp || 250;
     return {
@@ -222,6 +333,48 @@ export function generateLocalMentorResponse(
         "How can I earn more SkillPoints?"
       ]
     };
+  }
+
+  // 6. Generic Knowledge Match from AI_KNOWLEDGE_BASE
+  for (const topic of AI_KNOWLEDGE_BASE.topics) {
+    if (
+      norm.includes(topic.title.toLowerCase()) ||
+      norm.includes(topic.category.toLowerCase()) ||
+      topic.keyConcepts.some(c => norm.includes(c.name.toLowerCase()))
+    ) {
+      const firstConcept = topic.keyConcepts[0];
+      const formula = topic.formulas[0];
+      const practice = topic.practiceQuestions[0];
+
+      return {
+        reply: `Let's explore **${topic.title}** (${topic.category}), **${studentName}**!\n\n${topic.description}\n\n💡 **Key Concept**: **${firstConcept?.name || topic.title}**\n${firstConcept?.explanation || ''}\n\nWhat aspect of ${topic.title} would you like to dive deeper into?`,
+        mentorState: 'explaining',
+        emotionalTone: 'supportive',
+        formulaCard: formula
+          ? {
+              title: formula.name,
+              formula: formula.expression,
+              variables: [{ symbol: 'Variables', meaning: formula.description }],
+              example: formula.examples?.[0] || '',
+              tip: formula.derivation
+            }
+          : undefined,
+        practiceCard: practice
+          ? {
+              question: practice.question,
+              options: practice.options,
+              correctIndex: practice.answerIndex,
+              explanation: practice.explanation,
+              topic: topic.title
+            }
+          : undefined,
+        suggestedFollowUps: [
+          `Explain ${firstConcept?.name || topic.title} in simple terms`,
+          `Give me a practice question on ${topic.title}`,
+          `Show common mistakes in ${topic.title}`
+        ]
+      };
+    }
   }
 
   // General Socratic response
@@ -340,7 +493,7 @@ Respond strictly with valid JSON conforming to the requested schema. Ensure the 
 /**
  * Generates proactive intervention alerts based on student activity
  */
-export async function generateProactiveAlert(context: MentorStudentContext) {
+export async function generateProactiveAlert(context: MentorStudentContext): Promise<ProactiveAlert | null> {
   // If user has recent quiz errors
   if (context.lastQuizErrors && context.lastQuizErrors.length > 0) {
     const error = context.lastQuizErrors[0];

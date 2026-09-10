@@ -1,5 +1,8 @@
 import { apiRequest } from './apiClient';
 import { MentorMessage, MentorMode, MentorStudentContext, ProactiveAlert } from '../types/mentor';
+import { generateLocalMentorResponse, generateProactiveAlert, MentorEngineResult } from './aiMentorEngine';
+
+const LOCAL_HISTORY_KEY = 'learnerpedia_mentor_chat_history';
 
 export interface MentorChatResponse {
   reply: string;
@@ -36,21 +39,69 @@ export interface MentorChatResponse {
   proactiveInsight?: string;
 }
 
+function saveLocalHistory(message: string, result: MentorEngineResult | MentorChatResponse, mode: MentorMode) {
+  try {
+    const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+    const history: MentorMessage[] = raw ? JSON.parse(raw) : [];
+
+    const userMsg: MentorMessage = {
+      id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      sender: 'student',
+      text: message,
+      timestamp: new Date().toISOString()
+    };
+
+    const mentorMsg: MentorMessage = {
+      id: `mnt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      sender: 'mentor',
+      text: result.reply,
+      timestamp: new Date().toISOString(),
+      mode,
+      mentorState: result.mentorState || 'speaking',
+      practiceCard: result.practiceCard,
+      formulaCard: result.formulaCard,
+      diagnosticCard: result.diagnosticCard,
+      recommendedStep: result.recommendedStep,
+      suggestedFollowUps: result.suggestedFollowUps || []
+    };
+
+    const updated = [...history, userMsg, mentorMsg].slice(-30);
+    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.warn('Could not save local mentor history:', e);
+  }
+}
+
 export async function sendMentorMessage(
   message: string,
   context: MentorStudentContext,
   mode: MentorMode = 'socratic',
   preferredLanguage: string = 'English'
 ): Promise<MentorChatResponse> {
-  return await apiRequest<MentorChatResponse>('/ai-mentor/chat', {
-    method: 'POST',
-    body: JSON.stringify({
-      message,
-      context,
-      mode,
-      preferredLanguage
-    })
-  });
+  // 1. Try server API
+  try {
+    const response = await apiRequest<MentorChatResponse>('/ai-mentor/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        context,
+        mode,
+        preferredLanguage
+      })
+    });
+
+    if (response && response.reply) {
+      saveLocalHistory(message, response, mode);
+      return response;
+    }
+  } catch (err) {
+    console.warn('Backend /ai-mentor/chat API unavailable (Vercel/Static mode fallback active):', err);
+  }
+
+  // 2. Fallback to resilient client-side pedagogical engine
+  const localResponse = generateLocalMentorResponse(message, context, mode, preferredLanguage);
+  saveLocalHistory(message, localResponse, mode);
+  return localResponse;
 }
 
 export async function fetchProactiveAlert(context: MentorStudentContext): Promise<ProactiveAlert | null> {
@@ -59,29 +110,47 @@ export async function fetchProactiveAlert(context: MentorStudentContext): Promis
       method: 'POST',
       body: JSON.stringify({ context })
     });
-    return res.alert;
+    if (res && res.alert) {
+      return res.alert;
+    }
   } catch (err) {
-    console.warn('Failed to fetch proactive mentor alert:', err);
-    return null;
+    // Expected on Vercel static hosting
   }
+
+  return generateProactiveAlert(context);
 }
 
 export async function fetchMentorHistory(): Promise<MentorMessage[]> {
   try {
     const res = await apiRequest<{ history: MentorMessage[] }>('/ai-mentor/history');
-    return res.history || [];
+    if (res && Array.isArray(res.history) && res.history.length > 0) {
+      return res.history;
+    }
   } catch (err) {
-    console.warn('Failed to fetch mentor history:', err);
-    return [];
+    // Expected on Vercel static hosting
   }
+
+  try {
+    const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw);
+      if (Array.isArray(history)) return history;
+    }
+  } catch (e) {
+    console.warn('Error reading local mentor history:', e);
+  }
+
+  return [];
 }
 
 export async function clearMentorHistory(): Promise<boolean> {
   try {
-    await apiRequest('/ai-mentor/clear-history', { method: 'POST' });
+    localStorage.removeItem(LOCAL_HISTORY_KEY);
+    await apiRequest('/ai-mentor/clear-history', { method: 'POST' }).catch(() => {});
     return true;
   } catch (err) {
     console.warn('Failed to clear mentor history:', err);
-    return false;
+    return true;
   }
 }
+
