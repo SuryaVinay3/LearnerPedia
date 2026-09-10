@@ -1,0 +1,227 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Student profile holding gamification stats, XP, LP, and badges",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "trainer", "admin"] },
+        "xp": { "type": "number" },
+        "learningPoints": { "type": "number" },
+        "level": { "type": "string" },
+        "levelNumber": { "type": "number" },
+        "streak": { "type": "number" },
+        "badges": { "type": "array" },
+        "completedLessons": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Course": {
+      "title": "Course Subject",
+      "description": "Learning course domain",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "category": { "type": "string" },
+        "level": { "type": "string" },
+        "totalLessons": { "type": "number" },
+        "lpReward": { "type": "number" }
+      },
+      "required": ["id", "title", "slug"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Individual course lesson content card",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "order": { "type": "number" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "keyTakeaways": { "type": "array" },
+        "formula": { "type": "string" },
+        "checkpointId": { "type": "string" }
+      },
+      "required": ["id", "courseId", "title", "order"]
+    },
+    "Checkpoint": {
+      "title": "Hidden Checkpoint",
+      "description": "Unannounced skill verification challenge",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "question": { "type": "string" },
+        "options": { "type": "array" },
+        "correctAnswer": { "type": "string" },
+        "explanation": { "type": "string" },
+        "lpReward": { "type": "number" }
+      },
+      "required": ["id", "lessonId", "question", "options"]
+    },
+    "QuizAttempt": {
+      "title": "Quiz Attempt",
+      "description": "Recorded student practice quiz attempt",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "quizId": { "type": "string" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "timeTaken": { "type": "number" },
+        "hintsUsed": { "type": "number" },
+        "correctAnswers": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "xpEarned": { "type": "number" },
+        "lpEarned": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "quizId", "score"]
+    },
+    "SimulationAttempt": {
+      "title": "Simulation Attempt",
+      "description": "Recorded network simulation attempt",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "simulationId": { "type": "string" },
+        "configuration": { "type": "object" },
+        "success": { "type": "boolean" },
+        "attempts": { "type": "number" },
+        "hintsUsed": { "type": "number" },
+        "timeTaken": { "type": "number" },
+        "score": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "simulationId", "success"]
+    },
+    "CompetitionAttempt": {
+      "title": "Competition Attempt",
+      "description": "VLSM Competition entry attempt",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "competitionId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "allocations": { "type": "object" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "timeTaken": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "competitionId", "score"]
+    },
+    "LearningPointTransaction": {
+      "title": "LP Transaction",
+      "description": "Ledger entry for Learning Point income or expenditure",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "activityType": { "type": "string" },
+        "activityId": { "type": "string" },
+        "points": { "type": "number" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "points", "activityType"]
+    },
+    "Reward": {
+      "title": "Educational Reward",
+      "description": "Curated educational resource available for LP redemption",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "lpCost": { "type": "number" },
+        "icon": { "type": "string" },
+        "downloadUrl": { "type": "string" }
+      },
+      "required": ["id", "title", "lpCost"]
+    },
+    "RewardRedemption": {
+      "title": "Reward Redemption Record",
+      "description": "Record of student reward redemption",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "rewardId": { "type": "string" },
+        "rewardTitle": { "type": "string" },
+        "lpCost": { "type": "number" },
+        "redeemedAt": { "type": "string" }
+      },
+      "required": ["uid", "rewardId", "lpCost"]
+    },
+    "LearningProgress": {
+      "title": "Learning Progress",
+      "description": "Track course completion per user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "courseId": { "type": "string" },
+        "completedLessons": { "type": "array" },
+        "currentLesson": { "type": "string" },
+        "lastAccessedAt": { "type": "string" }
+      },
+      "required": ["uid", "courseId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile collection"
+    },
+    "/courses/{courseId}": {
+      "schema": { "$ref": "#/entities/Course" },
+      "description": "Courses collection"
+    },
+    "/lessons/{lessonId}": {
+      "schema": { "$ref": "#/entities/Lesson" },
+      "description": "Lessons collection"
+    },
+    "/checkpoints/{checkpointId}": {
+      "schema": { "$ref": "#/entities/Checkpoint" },
+      "description": "Checkpoints collection"
+    },
+    "/quizAttempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/QuizAttempt" },
+      "description": "Quiz attempts history"
+    },
+    "/simulationAttempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/SimulationAttempt" },
+      "description": "Simulation attempts history"
+    },
+    "/competitionAttempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/CompetitionAttempt" },
+      "description": "Competition attempts history"
+    },
+    "/learningPointTransactions/{txId}": {
+      "schema": { "$ref": "#/entities/LearningPointTransaction" },
+      "description": "Learning points transaction ledger"
+    },
+    "/rewards/{rewardId}": {
+      "schema": { "$ref": "#/entities/Reward" },
+      "description": "Educational rewards store"
+    },
+    "/rewardRedemptions/{redemptionId}": {
+      "schema": { "$ref": "#/entities/RewardRedemption" },
+      "description": "Redemption history"
+    },
+    "/learningProgress/{progressId}": {
+      "schema": { "$ref": "#/entities/LearningProgress" },
+      "description": "User course progress"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "LearnerPedia",
+  "description": "Smart Education Ecosystem with Network Simulations, Practice Quizzes, Hidden Knowledge Checkpoints, AI Learning Analysis, and Real-Time Firebase Persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users Collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Public Educational Content & Attempts
+    match /courses/{courseId} {
+      allow read, write: if true;
+    }
+
+    match /lessons/{lessonId} {
+      allow read, write: if true;
+    }
+
+    match /checkpoints/{checkpointId} {
+      allow read, write: if true;
+    }
+
+    match /rewards/{rewardId} {
+      allow read, write: if true;
+    }
+
+    match /quizAttempts/{attemptId} {
+      allow read, write: if true;
+    }
+
+    match /simulationAttempts/{attemptId} {
+      allow read, write: if true;
+    }
+
+    match /competitionAttempts/{attemptId} {
+      allow read, write: if true;
+    }
+
+    match /learningPointTransactions/{txId} {
+      allow read, write: if true;
+    }
+
+    match /rewardRedemptions/{redemptionId} {
+      allow read, write: if true;
+    }
+
+    match /learningProgress/{progressId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+
+
